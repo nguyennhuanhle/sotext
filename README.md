@@ -4,6 +4,15 @@
 >
 > **SoText** là ứng dụng desktop được xây dựng bằng **Tauri + Rust**, phát hiện tương đồng văn bản nhanh chóng và hoạt động offline. Hỗ trợ giáo viên, nhà nghiên cứu và người kiểm duyệt nội dung phát hiện sao chép hoặc diễn giải lại.
 
+## 📥 Download / Tải về
+
+| Installer | Link |
+|---|---|
+| **Windows Setup (EXE)** | [SoText_1.0.0_x64-setup.exe](https://github.com/nguyennhuanhle/sotext/releases/download/v1.0.0/SoText_1.0.0_x64-setup.exe) |
+| **Windows Installer (MSI)** | [SoText_1.0.0_x64_en-US.msi](https://github.com/nguyennhuanhle/sotext/releases/download/v1.0.0/SoText_1.0.0_x64_en-US.msi) |
+
+👉 [All releases / Tất cả phiên bản](https://github.com/nguyennhuanhle/sotext/releases)
+
 ---
 
 ## ✨ Key Features / Tính năng chính
