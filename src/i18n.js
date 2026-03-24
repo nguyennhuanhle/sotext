@@ -4,11 +4,11 @@
 const i18n = {
   en: {
     // Header
-    subtitle: 'Detect content similarity between .txt, .docx, and .html files',
+    subtitle: 'Detect content similarity between .txt, .docx, .pdf, and .html files',
     helpBtn: '❓ How to Use',
     
     // Toolbar
-    placeholder: 'Select a folder containing .txt, .docx, .html files…',
+    placeholder: 'Select a folder containing .txt, .docx, .pdf, .html files…',
     browseBtn: 'Browse…',
     scanBtn: '🔍 Scan',
     clearBtn: '🗑 Clear',
@@ -18,16 +18,18 @@ const i18n = {
     exportCsv: '📄 Export CSV',
     exportXlsx: '📊 Export Excel',
     exportHtml: '📝 Export HTML',
+    exportPdf: '📑 Export PDF',
     
     // Status
     statusReady: 'Select a folder and click Scan to begin',
-    statusLoaded: (count) => `📁 Loaded folder with ${count} file${count !== 1 ? 's' : ''} (.txt, .docx, .html). Click Scan to analyze.`,
+    statusLoaded: (count) => `📁 Loaded folder with ${count} file${count !== 1 ? 's' : ''} (.txt, .docx, .pdf, .html). Click Scan to analyze.`,
     statusScanning: 'Loading and analyzing files…',
     statusInvalidThreshold: '⚠ Invalid threshold (10-100).',
     statusNoFolder: '⚠ Please select a folder first.',
     statusExported: (fname) => `✅ Exported to ${fname}`,
     statusExportError: (err) => `❌ Export error: ${err}`,
     statusTemplateLoaded: (fname) => `📋 Template loaded: ${fname}. Template text will be excluded from comparison.`,
+    statusGeneratingPdf: 'Generating PDF report…',
     statusDetailLoading: 'Loading comparison…',
     statusDetailError: (err) => `Detail error: ${err}`,
     statusError: (err) => `Error: ${err}`,
@@ -49,12 +51,12 @@ const i18n = {
     // Help modal
     helpTitle: '📖 How to Use SoText',
     helpQuickStart: '🚀 Quick Start',
-    helpStep1: '<strong>Browse</strong> — Click <em>Browse…</em> to select a folder containing your files (.txt, .docx, or .html).',
+    helpStep1: '<strong>Browse</strong> — Click <em>Browse…</em> to select a folder containing your files (.txt, .docx, .pdf, or .html).',
     helpStep2: '<strong>Set Parameters</strong> — Adjust <em>Threshold</em> and <em>N-gram size</em> as needed (see below).',
     helpStep3: '<strong>Template (Optional)</strong> — Click <em>📋 Template</em> to upload a prompt/question file. Its content will be excluded from comparison, removing false positives from shared questions.',
     helpStep4: '<strong>Scan</strong> — Click <em>🔍 Scan</em> to start analysis. Results appear in the table below.',
     helpStep5: '<strong>Review</strong> — Click any row in the results table to see a side-by-side comparison with highlighted matching text.',
-    helpStep6: '<strong>Export</strong> — Export results as CSV, Excel, or a full HTML report with highlighted comparisons.',
+    helpStep6: '<strong>Export</strong> — Export results as CSV, Excel, HTML, or a full PDF report with highlighted comparisons.',
     helpStep7: '<strong>Clear</strong> — Click <em>🗑 Clear</em> to reset everything and start over.',
     helpParams: '⚙️ Parameters Explained',
     helpParamHeader: ['Parameter', 'Description', 'Default'],
@@ -80,15 +82,16 @@ const i18n = {
     helpFormatTxt: '<strong>.txt</strong> — Plain text files (UTF-8)',
     helpFormatDocx: '<strong>.docx</strong> — Microsoft Word documents',
     helpFormatHtml: '<strong>.html / .htm</strong> — Web pages (text extracted, tags stripped)',
+    helpFormatPdf: '<strong>.pdf</strong> — PDF documents (text extracted)',
   },
   
   vi: {
     // Header
-    subtitle: 'Phát hiện tương đồng nội dung giữa các file .txt, .docx và .html',
+    subtitle: 'Phát hiện tương đồng nội dung giữa các file .txt, .docx, .pdf và .html',
     helpBtn: '❓ Hướng dẫn',
     
     // Toolbar
-    placeholder: 'Chọn thư mục chứa file .txt, .docx, .html…',
+    placeholder: 'Chọn thư mục chứa file .txt, .docx, .pdf, .html…',
     browseBtn: 'Chọn…',
     scanBtn: '🔍 Quét',
     clearBtn: '🗑 Xóa',
@@ -98,16 +101,18 @@ const i18n = {
     exportCsv: '📄 Xuất CSV',
     exportXlsx: '📊 Xuất Excel',
     exportHtml: '📝 Xuất HTML',
+    exportPdf: '📑 Xuất PDF',
     
     // Status
     statusReady: 'Chọn thư mục và nhấn Quét để bắt đầu',
-    statusLoaded: (count) => `📁 Đã tải thư mục với ${count} file (.txt, .docx, .html). Nhấn Quét để phân tích.`,
+    statusLoaded: (count) => `📁 Đã tải thư mục với ${count} file (.txt, .docx, .pdf, .html). Nhấn Quét để phân tích.`,
     statusScanning: 'Đang tải và phân tích file…',
     statusInvalidThreshold: '⚠ Ngưỡng không hợp lệ (10-100).',
     statusNoFolder: '⚠ Vui lòng chọn thư mục trước.',
     statusExported: (fname) => `✅ Đã xuất ra ${fname}`,
     statusExportError: (err) => `❌ Lỗi xuất file: ${err}`,
     statusTemplateLoaded: (fname) => `📋 Đã tải đề bài: ${fname}. Nội dung đề bài sẽ được loại trừ khi so sánh.`,
+    statusGeneratingPdf: 'Đang tạo báo cáo PDF…',
     statusDetailLoading: 'Đang tải so sánh…',
     statusDetailError: (err) => `Lỗi chi tiết: ${err}`,
     statusError: (err) => `Lỗi: ${err}`,
@@ -129,12 +134,12 @@ const i18n = {
     // Help modal
     helpTitle: '📖 Hướng dẫn sử dụng SoText',
     helpQuickStart: '🚀 Bắt đầu nhanh',
-    helpStep1: '<strong>Chọn thư mục</strong> — Nhấn <em>Chọn…</em> để chọn thư mục chứa các file (.txt, .docx, hoặc .html).',
+    helpStep1: '<strong>Chọn thư mục</strong> — Nhấn <em>Chọn…</em> để chọn thư mục chứa các file (.txt, .docx, .pdf, hoặc .html).',
     helpStep2: '<strong>Cài đặt thông số</strong> — Điều chỉnh <em>Ngưỡng</em> và <em>Kích thước N-gram</em> theo nhu cầu (xem bên dưới).',
     helpStep3: '<strong>Đề bài (Tùy chọn)</strong> — Nhấn <em>📋 Đề bài</em> để tải file câu hỏi/đề bài. Nội dung đề bài sẽ được tự động loại trừ khỏi phép so sánh, tránh kết quả dương tính giả từ câu hỏi chung.',
     helpStep4: '<strong>Quét</strong> — Nhấn <em>🔍 Quét</em> để bắt đầu phân tích. Kết quả hiển thị trong bảng bên dưới.',
     helpStep5: '<strong>Xem chi tiết</strong> — Nhấn vào bất kỳ hàng nào trong bảng kết quả để xem so sánh song song với văn bản được highlight.',
-    helpStep6: '<strong>Xuất kết quả</strong> — Xuất ra CSV, Excel, hoặc báo cáo HTML đầy đủ với so sánh highlight.',
+    helpStep6: '<strong>Xuất kết quả</strong> — Xuất ra CSV, Excel, báo cáo HTML hoặc PDF đầy đủ với so sánh highlight.',
     helpStep7: '<strong>Xóa</strong> — Nhấn <em>🗑 Xóa</em> để đặt lại mọi thứ và bắt đầu lại.',
     helpParams: '⚙️ Giải thích thông số',
     helpParamHeader: ['Thông số', 'Mô tả', 'Mặc định'],
@@ -160,5 +165,6 @@ const i18n = {
     helpFormatTxt: '<strong>.txt</strong> — File văn bản thuần (UTF-8)',
     helpFormatDocx: '<strong>.docx</strong> — Tài liệu Microsoft Word',
     helpFormatHtml: '<strong>.html / .htm</strong> — Trang web (trích xuất văn bản, loại bỏ thẻ HTML)',
+    helpFormatPdf: '<strong>.pdf</strong> — Tài liệu PDF (trích xuất văn bản)',
   }
 };

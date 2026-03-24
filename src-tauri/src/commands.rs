@@ -127,3 +127,19 @@ pub fn export_html(
 
     export::export_html_report(&results, &details, &filepath)
 }
+
+/// Export PDF comparison report
+#[tauri::command]
+pub fn export_pdf(
+    results: Vec<analysis::SimilarityPair>,
+    folder: String,
+    ngram_size: usize,
+    filepath: String,
+) -> Result<(), String> {
+    let details: Vec<analysis::DetailResult> = results
+        .iter()
+        .map(|pair| analysis::get_detail(&folder, &pair.file_a, &pair.file_b, ngram_size, 0.7))
+        .collect();
+
+    export::export_pdf_report(&results, &details, &filepath)
+}

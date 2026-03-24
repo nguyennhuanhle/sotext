@@ -27,4 +27,6 @@ rust-stemmers = "1.2"
 strsim = "0.11"
 whatlang = "0.16"
 stop-words = "0.8"
+lopdf = "0.34"
+genpdf = "0.2"
 

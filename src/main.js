@@ -22,6 +22,7 @@ const templateBtn = document.getElementById('templateBtn');
 const exportCsvBtn = document.getElementById('exportCsvBtn');
 const exportXlsxBtn = document.getElementById('exportXlsxBtn');
 const exportHtmlBtn = document.getElementById('exportHtmlBtn');
+const exportPdfBtn = document.getElementById('exportPdfBtn');
 const resultsBody = document.getElementById('resultsBody');
 const emptyState = document.getElementById('emptyState');
 const detailPanel = document.getElementById('detailPanel');
@@ -62,6 +63,7 @@ function applyLanguage() {
   exportCsvBtn.textContent = L.exportCsv;
   exportXlsxBtn.textContent = L.exportXlsx;
   exportHtmlBtn.textContent = L.exportHtml;
+  exportPdfBtn.textContent = L.exportPdf;
   
   // Status (only if in default state)
   if (!currentFolder) setStatus(L.statusReady);
@@ -118,7 +120,7 @@ function buildHelpHtml(L) {
       <tr><td><strong>Level 4</strong></td><td>${L.helpAlgo4Name}</td><td>${L.helpAlgo4Catches}</td></tr>
     </table>
     <h3>${L.helpFormats}</h3>
-    <ul><li>${L.helpFormatTxt}</li><li>${L.helpFormatDocx}</li><li>${L.helpFormatHtml}</li></ul>
+    <ul><li>${L.helpFormatTxt}</li><li>${L.helpFormatDocx}</li><li>${L.helpFormatPdf}</li><li>${L.helpFormatHtml}</li></ul>
   `;
 }
 
@@ -166,6 +168,7 @@ clearBtn.addEventListener('click', () => {
   exportCsvBtn.disabled = true;
   exportXlsxBtn.disabled = true;
   exportHtmlBtn.disabled = true;
+  exportPdfBtn.disabled = true;
   templateBtn.textContent = t('templateBtn');
   setStatus(t('statusReady'));
 });
@@ -242,6 +245,30 @@ exportHtmlBtn.addEventListener('click', async () => {
   }
 });
 
+exportPdfBtn.addEventListener('click', async () => {
+  if (currentResults.length === 0) return;
+  try {
+    const filepath = await invoke('pick_save_file', {
+      defaultName: 'sotext_report.pdf',
+      filterName: 'PDF files',
+      filterExt: 'pdf',
+    });
+    if (filepath) {
+      const ngramSize = parseInt(ngramInput.value) || 5;
+      setStatus(t('statusGeneratingPdf'));
+      await invoke('export_pdf', {
+        results: currentResults,
+        folder: currentFolder,
+        ngramSize,
+        filepath,
+      });
+      setStatus(t('statusExported')(filepath.split(/[\\/]/).pop()));
+    }
+  } catch (err) {
+    setStatus(t('statusExportError')(err));
+  }
+});
+
 // Table header sorting
 document.querySelectorAll('#resultsTable th.sortable').forEach(th => {
   th.addEventListener('click', () => {
@@ -277,6 +304,7 @@ async function startScan() {
   exportCsvBtn.disabled = true;
   exportXlsxBtn.disabled = true;
   exportHtmlBtn.disabled = true;
+  exportPdfBtn.disabled = true;
   progressBar.classList.remove('hidden');
   setStatus(t('statusScanning'));
   detailPanel.classList.add('hidden');
@@ -299,6 +327,7 @@ async function startScan() {
       exportCsvBtn.disabled = false;
       exportXlsxBtn.disabled = false;
       exportHtmlBtn.disabled = false;
+      exportPdfBtn.disabled = false;
     }
   } catch (err) {
     setStatus(t('statusError')(err));

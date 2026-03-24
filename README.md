@@ -20,6 +20,7 @@
 ### 📁 Multi-format Support / Hỗ trợ đa định dạng
 - **`.txt`** — Plain text files (UTF-8) / File văn bản thuần
 - **`.docx`** — Microsoft Word documents / Tài liệu Word
+- **`.pdf`** — PDF documents (text extracted) / Tài liệu PDF (trích xuất văn bản)
 - **`.html / .htm`** — Web pages (tags stripped) / Trang web (loại bỏ thẻ HTML)
 
 ### 🧠 4-Level Detection Algorithms / 4 thuật toán phát hiện
@@ -44,6 +45,7 @@
 - **CSV** — For spreadsheet analysis / Phân tích bảng tính
 - **Excel (.xlsx)** — Formatted workbook / Bảng tính có định dạng
 - **HTML Report** — Full report with highlighted comparisons / Báo cáo đầy đủ với highlight so sánh
+- **PDF Report** — Professional PDF with color-coded highlights / Báo cáo PDF chuyên nghiệp với highlight màu
 
 ### ⚙️ Configurable Parameters / Thông số tùy chỉnh
 - **Threshold (10–100%)** — Filter results by minimum Cosine Score / Lọc kết quả theo điểm Cosine tối thiểu
@@ -60,7 +62,7 @@
 2. **Template** _(optional)_ — Upload a prompt file to exclude / Tải đề bài để loại trừ
 3. **Scan** — Click 🔍 to start analysis / Nhấn 🔍 để bắt đầu phân tích
 4. **Review** — Click any row for side-by-side details / Nhấn vào hàng để xem chi tiết
-5. **Export** — Save results as CSV, Excel, or HTML / Lưu kết quả ra CSV, Excel, hoặc HTML
+5. **Export** — Save results as CSV, Excel, HTML, or PDF / Lưu kết quả ra CSV, Excel, HTML, hoặc PDF
 
 ---
 
@@ -73,9 +75,10 @@
 | Stemming | Snowball Stemmer (`rust-stemmers`) |
 | String Similarity | `strsim` (Levenshtein, Jaccard) |
 | DOCX Parsing | `dotext` |
+| PDF Parsing | `pdf-extract` |
 | HTML Parsing | `scraper` |
 | Hashing | `md-5` |
-| Export | `csv`, `rust_xlsxwriter` |
+| Export | `csv`, `rust_xlsxwriter`, `genpdf` |
 
 ---
 

@@ -12,7 +12,7 @@ use crate::sentence::{self, SuspiciousPair};
 use crate::tfidf;
 
 /// Supported file extensions
-const SUPPORTED_EXTENSIONS: &[&str] = &["txt", "docx", "html", "htm"];
+const SUPPORTED_EXTENSIONS: &[&str] = &["txt", "docx", "html", "htm", "pdf"];
 
 /// A pair of files with their similarity score
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,6 +74,10 @@ fn extract_text(path: &Path) -> Option<String> {
             docx.read_to_string(&mut content).ok()?;
             Some(content)
         }
+        "pdf" => {
+            // Use lopdf for safe PDF text extraction (pdf-extract causes crashes)
+            extract_pdf_text(path)
+        }
         "html" | "htm" => {
             let html_content = fs::read_to_string(path).ok()?;
             let document = scraper::Html::parse_document(&html_content);
@@ -87,6 +91,133 @@ fn extract_text(path: &Path) -> Option<String> {
                 None
             } else {
                 Some(cleaned)
+            }
+        }
+        _ => None,
+    }
+}
+
+/// Extract text from a PDF file using lopdf (safe, no crashes)
+fn extract_pdf_text(path: &Path) -> Option<String> {
+    let doc = lopdf::Document::load(path).ok()?;
+    let mut all_text = String::new();
+
+    let pages = doc.get_pages();
+    let mut page_ids: Vec<(u32, lopdf::ObjectId)> = pages.into_iter().collect();
+    page_ids.sort_by_key(|(num, _)| *num);
+
+    for (_page_num, page_id) in &page_ids {
+        let page_text = extract_page_text(&doc, *page_id);
+        if !page_text.is_empty() {
+            if !all_text.is_empty() {
+                all_text.push(' ');
+            }
+            all_text.push_str(&page_text);
+        }
+    }
+
+    let cleaned = all_text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if cleaned.is_empty() {
+        None
+    } else {
+        Some(cleaned)
+    }
+}
+
+/// Extract text from a single PDF page using lopdf's content parser
+fn extract_page_text(doc: &lopdf::Document, page_id: lopdf::ObjectId) -> String {
+    let content_data = match doc.get_page_content(page_id) {
+        Ok(data) => data,
+        Err(_) => return String::new(),
+    };
+
+    let content = match lopdf::content::Content::decode(&content_data) {
+        Ok(c) => c,
+        Err(_) => return String::new(),
+    };
+
+    let mut text = String::new();
+
+    for operation in &content.operations {
+        match operation.operator.as_str() {
+            // Tj = show text string
+            "Tj" => {
+                for operand in &operation.operands {
+                    if let Some(s) = extract_string_from_object(operand) {
+                        text.push_str(&s);
+                    }
+                }
+            }
+            // TJ = show text array (mixed strings and positioning)
+            "TJ" => {
+                for operand in &operation.operands {
+                    if let lopdf::Object::Array(arr) = operand {
+                        for item in arr {
+                            if let Some(s) = extract_string_from_object(item) {
+                                text.push_str(&s);
+                            }
+                        }
+                    }
+                }
+            }
+            // ' = move to next line and show text
+            "'" => {
+                text.push(' ');
+                for operand in &operation.operands {
+                    if let Some(s) = extract_string_from_object(operand) {
+                        text.push_str(&s);
+                    }
+                }
+            }
+            // " = set spacing, move to next line, show text
+            "\"" => {
+                text.push(' ');
+                // Last operand is the text string
+                if let Some(last) = operation.operands.last() {
+                    if let Some(s) = extract_string_from_object(last) {
+                        text.push_str(&s);
+                    }
+                }
+            }
+            // ET = end text block, add separator
+            "ET" => {
+                if !text.is_empty() && !text.ends_with(' ') {
+                    text.push(' ');
+                }
+            }
+            _ => {}
+        }
+    }
+
+    text
+}
+
+/// Extract a readable string from a PDF Object (handles both string types)
+fn extract_string_from_object(obj: &lopdf::Object) -> Option<String> {
+    match obj {
+        lopdf::Object::String(bytes, _format) => {
+            // Try UTF-16 BE first (starts with BOM 0xFE 0xFF)
+            if bytes.len() >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF {
+                let chars: Vec<u16> = bytes[2..]
+                    .chunks(2)
+                    .filter_map(|chunk| {
+                        if chunk.len() == 2 {
+                            Some(u16::from_be_bytes([chunk[0], chunk[1]]))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                Some(String::from_utf16_lossy(&chars))
+            } else {
+                // Latin-1 / PDFDocEncoding
+                let s: String = bytes.iter().map(|&b| b as char).collect();
+                let trimmed = s.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(trimmed.to_string())
+                }
             }
         }
         _ => None,
@@ -322,8 +453,8 @@ mod tests {
         assert!(is_supported_file("test.txt"));
         assert!(is_supported_file("essay.docx"));
         assert!(is_supported_file("page.html"));
+        assert!(is_supported_file("paper.pdf"));
         assert!(!is_supported_file("image.png"));
-        assert!(!is_supported_file("paper.pdf"));
     }
 
     #[test]

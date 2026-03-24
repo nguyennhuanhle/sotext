@@ -278,6 +278,378 @@ fn escape_html(s: &str) -> String {
         .replace('"', "&quot;")
 }
 
+/// Export a PDF comparison report with highlighted matching text
+pub fn export_pdf_report(
+    results: &[SimilarityPair],
+    details: &[DetailResult],
+    filepath: &str,
+) -> Result<(), String> {
+    use genpdf::elements::{Break, Paragraph, TableLayout};
+    use genpdf::style::{Color, Style};
+    use genpdf::Element;
+
+    // Load font from system fonts directory
+    let font_family = load_system_font()
+        .map_err(|e| format!("Failed to load font for PDF: {}", e))?;
+
+    let mut doc = genpdf::Document::new(font_family);
+    doc.set_title("SoText - Similarity Report");
+
+    let mut decorator = genpdf::SimplePageDecorator::new();
+    decorator.set_margins(15);
+    doc.set_page_decorator(decorator);
+
+    // Define styles
+    let title_style = Style::new().bold().with_font_size(18);
+    let subtitle_style = Style::new().with_font_size(10);
+    let header_style = Style::new().bold().with_font_size(10);
+    let body_style = Style::new().with_font_size(9);
+    let exact_style = Style::new()
+        .bold()
+        .with_font_size(9)
+        .with_color(Color::Rgb(180, 120, 0)); // Dark yellow/orange for exact matches
+    let para_highlight_style = Style::new()
+        .bold()
+        .with_font_size(9)
+        .with_color(Color::Rgb(200, 60, 20)); // Dark red-orange for paraphrased
+    let score_high_style = Style::new()
+        .bold()
+        .with_font_size(9)
+        .with_color(Color::Rgb(200, 0, 0)); // Red for high scores
+    let score_med_style = Style::new()
+        .bold()
+        .with_font_size(9)
+        .with_color(Color::Rgb(180, 120, 0)); // Orange for medium scores
+
+    // ─── Title ───────────────────────────────────────────────
+    doc.push(
+        Paragraph::default()
+            .styled_string("SoText - Similarity Report", title_style),
+    );
+    doc.push(
+        Paragraph::default()
+            .styled_string(format!("Generated: {}", chrono_now()), subtitle_style),
+    );
+    doc.push(Break::new(1.5));
+
+    // ─── Legend ──────────────────────────────────────────────
+    let legend = Paragraph::default()
+        .styled_string("Legend: ", header_style)
+        .styled_string("[EXACT MATCH] ", exact_style)
+        .styled_string("= N-gram exact match   ", body_style)
+        .styled_string("[PARAPHRASED] ", para_highlight_style)
+        .styled_string("= Jaccard/Levenshtein match", body_style);
+    doc.push(legend);
+    doc.push(Break::new(1.0));
+
+    // ─── Summary Table ───────────────────────────────────────
+    doc.push(
+        Paragraph::default()
+            .styled_string("Summary", Style::new().bold().with_font_size(14)),
+    );
+    doc.push(Break::new(0.5));
+
+    let mut table = TableLayout::new(vec![1, 1, 1]);
+    table.set_cell_decorator(genpdf::elements::FrameCellDecorator::new(true, true, false));
+
+    // Table header row
+    let header_row = table.row();
+    header_row
+        .element(
+            Paragraph::default()
+                .styled_string("File A", header_style)
+                .padded(1),
+        )
+        .element(
+            Paragraph::default()
+                .styled_string("File B", header_style)
+                .padded(1),
+        )
+        .element(
+            Paragraph::default()
+                .styled_string("Cosine Score", header_style)
+                .padded(1),
+        )
+        .push()
+        .map_err(|e| e.to_string())?;
+
+    // Table data rows
+    for pair in results {
+        let score_style = if pair.score >= 80.0 {
+            score_high_style
+        } else if pair.score >= 60.0 {
+            score_med_style
+        } else {
+            body_style
+        };
+
+        let row = table.row();
+        row.element(
+            Paragraph::default()
+                .styled_string(truncate_filename(&pair.file_a, 40), body_style)
+                .padded(1),
+        )
+        .element(
+            Paragraph::default()
+                .styled_string(truncate_filename(&pair.file_b, 40), body_style)
+                .padded(1),
+        )
+        .element(
+            Paragraph::default()
+                .styled_string(format!("{:.1}%", pair.score), score_style)
+                .padded(1),
+        )
+        .push()
+        .map_err(|e| e.to_string())?;
+    }
+
+    doc.push(table);
+    doc.push(Break::new(2.0));
+
+    // ─── Detail Comparisons ──────────────────────────────────
+    for (i, detail) in details.iter().enumerate() {
+        let score = results.get(i).map(|p| p.score).unwrap_or(0.0);
+
+        // Section header
+        doc.push(
+            Paragraph::default().styled_string(
+                format!(
+                    "Pair {} - {} <-> {} (Cosine: {:.1}%)",
+                    i + 1,
+                    detail.file_a,
+                    detail.file_b,
+                    score
+                ),
+                Style::new().bold().with_font_size(12),
+            ),
+        );
+        doc.push(Break::new(0.5));
+
+        // File A content with highlights
+        doc.push(
+            Paragraph::default()
+                .styled_string(format!("--- {} ---", detail.file_a), header_style),
+        );
+
+        let para_a = build_highlighted_paragraph(
+            &detail.content_a,
+            &detail.highlights_a,
+            &detail.suspicious_sentences,
+            true,
+            body_style,
+            exact_style,
+            para_highlight_style,
+        );
+        doc.push(para_a);
+        doc.push(Break::new(0.8));
+
+        // File B content with highlights
+        doc.push(
+            Paragraph::default()
+                .styled_string(format!("--- {} ---", detail.file_b), header_style),
+        );
+
+        let para_b = build_highlighted_paragraph(
+            &detail.content_b,
+            &detail.highlights_b,
+            &detail.suspicious_sentences,
+            false,
+            body_style,
+            exact_style,
+            para_highlight_style,
+        );
+        doc.push(para_b);
+        doc.push(Break::new(2.0));
+    }
+
+    // Render to file
+    doc.render_to_file(filepath).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+/// Build a paragraph with highlighted text spans for PDF
+fn build_highlighted_paragraph(
+    content: &str,
+    ngram_ranges: &[[usize; 2]],
+    suspicious: &[crate::sentence::SuspiciousPair],
+    is_a: bool,
+    normal_style: genpdf::style::Style,
+    exact_style: genpdf::style::Style,
+    para_style: genpdf::style::Style,
+) -> genpdf::elements::Paragraph {
+    use genpdf::elements::Paragraph;
+
+    let mut all_ranges: Vec<(usize, usize, &str)> = Vec::new();
+
+    // N-gram exact matches
+    for [s, e] in ngram_ranges {
+        all_ranges.push((*s, *e, "exact"));
+    }
+
+    // Suspicious sentences
+    for pair in suspicious {
+        let [s, e] = if is_a { pair.pos_a } else { pair.pos_b };
+        let already_covered = ngram_ranges.iter().any(|[ns, ne]| *ns <= s && *ne >= e);
+        if !already_covered {
+            all_ranges.push((s, e, "para"));
+        }
+    }
+
+    if all_ranges.is_empty() {
+        // Truncate long content for PDF readability
+        let display = if content.len() > 3000 {
+            format!(
+                "{}...\n[Content truncated for PDF - {} chars total]",
+                &content[..3000],
+                content.len()
+            )
+        } else {
+            content.to_string()
+        };
+        let mut p = Paragraph::default();
+        p.push_styled(display, normal_style);
+        return p;
+    }
+
+    all_ranges.sort_by_key(|r| r.0);
+
+    let mut paragraph = Paragraph::default();
+    let mut last_end = 0;
+    let max_len = content.len().min(5000); // Limit for PDF
+
+    for (start, end, kind) in &all_ranges {
+        let start = *start;
+        let end = (*end).min(max_len);
+        if start >= max_len {
+            break;
+        }
+        if start < last_end {
+            continue;
+        }
+        if start > last_end {
+            // Normal text before highlight
+            let normal_text = &content[last_end..start];
+            if !normal_text.is_empty() {
+                paragraph.push_styled(normal_text, normal_style);
+            }
+        }
+        let style = if *kind == "exact" {
+            exact_style
+        } else {
+            para_style
+        };
+        let highlighted_text = &content[start..end];
+        paragraph.push_styled(highlighted_text, style);
+        last_end = end;
+    }
+
+    if last_end < max_len && last_end < content.len() {
+        paragraph.push_styled(&content[last_end..max_len.min(content.len())], normal_style);
+    }
+
+    if content.len() > max_len {
+        paragraph.push_styled(
+            format!("\n[... truncated, {} chars total]", content.len()),
+            genpdf::style::Style::new().italic().with_font_size(8),
+        );
+    }
+
+    paragraph
+}
+
+/// Truncate a filename for display in the PDF table
+fn truncate_filename(name: &str, max_len: usize) -> String {
+    if name.len() <= max_len {
+        name.to_string()
+    } else {
+        format!("{}...", &name[..max_len - 3])
+    }
+}
+
+/// Load a system font for PDF generation
+fn load_system_font() -> Result<genpdf::fonts::FontFamily<genpdf::fonts::FontData>, String> {
+    // Try common system font directories
+    let font_dirs: Vec<std::path::PathBuf> = if cfg!(target_os = "windows") {
+        vec![
+            std::path::PathBuf::from(r"C:\Windows\Fonts"),
+            std::env::var("WINDIR")
+                .map(|w| std::path::PathBuf::from(w).join("Fonts"))
+                .unwrap_or_default(),
+        ]
+    } else if cfg!(target_os = "macos") {
+        vec![
+            std::path::PathBuf::from("/Library/Fonts"),
+            std::path::PathBuf::from("/System/Library/Fonts"),
+            dirs_next()
+                .map(|h| h.join("Library/Fonts"))
+                .unwrap_or_default(),
+        ]
+    } else {
+        vec![
+            std::path::PathBuf::from("/usr/share/fonts/truetype"),
+            std::path::PathBuf::from("/usr/share/fonts"),
+        ]
+    };
+
+    for dir in &font_dirs {
+        if !dir.exists() {
+            continue;
+        }
+
+        // Try Arial with exact filenames (Windows standard)
+        let regular = dir.join("arial.ttf");
+        let bold = dir.join("arialbd.ttf");
+        let italic = dir.join("ariali.ttf");
+        let bold_italic = dir.join("arialbi.ttf");
+
+        if regular.exists() && bold.exists() && italic.exists() && bold_italic.exists() {
+            let r =
+                genpdf::fonts::FontData::new(std::fs::read(&regular).map_err(|e| e.to_string())?, None)
+                    .map_err(|e| e.to_string())?;
+            let b =
+                genpdf::fonts::FontData::new(std::fs::read(&bold).map_err(|e| e.to_string())?, None)
+                    .map_err(|e| e.to_string())?;
+            let i =
+                genpdf::fonts::FontData::new(std::fs::read(&italic).map_err(|e| e.to_string())?, None)
+                    .map_err(|e| e.to_string())?;
+            let bi = genpdf::fonts::FontData::new(
+                std::fs::read(&bold_italic).map_err(|e| e.to_string())?,
+                None,
+            )
+            .map_err(|e| e.to_string())?;
+
+            return Ok(genpdf::fonts::FontFamily {
+                regular: r,
+                bold: b,
+                italic: i,
+                bold_italic: bi,
+            });
+        }
+
+        // Try loading via genpdf's from_files (looks for {name}-Regular.ttf etc.)
+        if let Ok(family) = genpdf::fonts::from_files(dir, "Arial", None) {
+            return Ok(family);
+        }
+        if let Ok(family) = genpdf::fonts::from_files(dir, "LiberationSans", None) {
+            return Ok(family);
+        }
+    }
+
+    Err("No suitable font found. Please ensure Arial or Liberation Sans is installed.".to_string())
+}
+
+/// Helper for home directory (macOS)
+#[cfg(target_os = "macos")]
+fn dirs_next() -> Option<std::path::PathBuf> {
+    std::env::var("HOME").ok().map(std::path::PathBuf::from)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn dirs_next() -> Option<std::path::PathBuf> {
+    None
+}
+
 fn chrono_now() -> String {
     // Simple timestamp without chrono crate
     let now = std::time::SystemTime::now()
