@@ -23,6 +23,7 @@ const templateBtn = document.getElementById('templateBtn');
 const exportXlsxBtn = document.getElementById('exportXlsxBtn');
 const exportHtmlBtn = document.getElementById('exportHtmlBtn');
 const exportPdfBtn = document.getElementById('exportPdfBtn');
+const exportDocxBtn = document.getElementById('exportDocxBtn');
 const resultsBody = document.getElementById('resultsBody');
 const emptyState = document.getElementById('emptyState');
 const detailPanel = document.getElementById('detailPanel');
@@ -64,6 +65,7 @@ function applyLanguage() {
   exportXlsxBtn.textContent = L.exportXlsx;
   exportHtmlBtn.textContent = L.exportHtml;
   exportPdfBtn.textContent = L.exportPdf;
+  exportDocxBtn.textContent = L.exportDocx;
   
   // Status (only if in default state)
   if (!currentFolder) setStatus(L.statusReady);
@@ -169,6 +171,7 @@ clearBtn.addEventListener('click', () => {
   exportXlsxBtn.disabled = true;
   exportHtmlBtn.disabled = true;
   exportPdfBtn.disabled = true;
+  exportDocxBtn.disabled = true;
   templateBtn.textContent = t('templateBtn');
   setStatus(t('statusReady'));
 });
@@ -260,6 +263,30 @@ exportPdfBtn.addEventListener('click', async () => {
   }
 });
 
+exportDocxBtn.addEventListener('click', async () => {
+  if (currentResults.length === 0) return;
+  try {
+    const filepath = await invoke('pick_save_file', {
+      defaultName: 'sotext_report.docx',
+      filterName: 'DOCX files',
+      filterExt: 'docx',
+    });
+    if (filepath) {
+      const ngramSize = parseInt(ngramInput.value) || 5;
+      setStatus(t('statusGeneratingDocx'));
+      await invoke('export_docx', {
+        results: currentResults,
+        folder: currentFolder,
+        ngramSize,
+        filepath,
+      });
+      setStatus(t('statusExported')(filepath.split(/[\\/]/).pop()));
+    }
+  } catch (err) {
+    setStatus(t('statusExportError')(err));
+  }
+});
+
 // Table header sorting
 document.querySelectorAll('#resultsTable th.sortable').forEach(th => {
   th.addEventListener('click', () => {
@@ -296,6 +323,7 @@ async function startScan() {
   exportXlsxBtn.disabled = true;
   exportHtmlBtn.disabled = true;
   exportPdfBtn.disabled = true;
+  exportDocxBtn.disabled = true;
   progressBar.classList.remove('hidden');
   setStatus(t('statusScanning'));
   detailPanel.classList.add('hidden');
@@ -319,6 +347,7 @@ async function startScan() {
       exportXlsxBtn.disabled = false;
       exportHtmlBtn.disabled = false;
       exportPdfBtn.disabled = false;
+      exportDocxBtn.disabled = false;
     }
   } catch (err) {
     setStatus(t('statusError')(err));

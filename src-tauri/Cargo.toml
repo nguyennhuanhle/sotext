@@ -1,6 +1,6 @@
 [package]
 name = "sotext"
-version = "1.2.0"
+version = "1.3.0"
 description = "SoText — Text Similarity Detector"
 authors = ["you"]
 edition = "2021"
@@ -28,4 +28,5 @@ whatlang = "0.16"
 stop-words = "0.8"
 lopdf = "0.34"
 genpdf = "0.2"
+docx-rs = "0.4"
 

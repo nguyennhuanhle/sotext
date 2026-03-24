@@ -19,6 +19,7 @@ const i18n = {
     exportXlsx: '📊 Export Excel',
     exportHtml: '📝 Export HTML',
     exportPdf: '📑 Export PDF',
+    exportDocx: '📄 Export DOCX',
     
     // Status
     statusReady: 'Select a folder and click Scan to begin',
@@ -30,6 +31,7 @@ const i18n = {
     statusExportError: (err) => `❌ Export error: ${err}`,
     statusTemplateLoaded: (fname) => `📋 Template loaded: ${fname}. Template text will be excluded from comparison.`,
     statusGeneratingPdf: 'Generating PDF report…',
+    statusGeneratingDocx: 'Generating DOCX report…',
     statusDetailLoading: 'Loading comparison…',
     statusDetailError: (err) => `Detail error: ${err}`,
     statusError: (err) => `Error: ${err}`,
@@ -102,6 +104,7 @@ const i18n = {
     exportXlsx: '📊 Xuất Excel',
     exportHtml: '📝 Xuất HTML',
     exportPdf: '📑 Xuất PDF',
+    exportDocx: '📄 Xuất DOCX',
     
     // Status
     statusReady: 'Chọn thư mục và nhấn Quét để bắt đầu',
@@ -113,6 +116,7 @@ const i18n = {
     statusExportError: (err) => `❌ Lỗi xuất file: ${err}`,
     statusTemplateLoaded: (fname) => `📋 Đã tải đề bài: ${fname}. Nội dung đề bài sẽ được loại trừ khi so sánh.`,
     statusGeneratingPdf: 'Đang tạo báo cáo PDF…',
+    statusGeneratingDocx: 'Đang tạo báo cáo DOCX…',
     statusDetailLoading: 'Đang tải so sánh…',
     statusDetailError: (err) => `Lỗi chi tiết: ${err}`,
     statusError: (err) => `Lỗi: ${err}`,

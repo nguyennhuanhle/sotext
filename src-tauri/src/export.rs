@@ -825,13 +825,300 @@ fn chrono_now() -> String {
     // Just show as Unix timestamp if no chrono; the user will see date in the report
     format!("{}", now)
 }
+/// Export a DOCX comparison report with highlighted matching text
+pub fn export_docx_report(
+    results: &[SimilarityPair],
+    details: &[DetailResult],
+    filepath: &str,
+) -> Result<(), String> {
+    use docx_rs::*;
+
+    let mut docx = Docx::new();
+
+    // ─── Title ───────────────────────────────────────────────
+    docx = docx.add_paragraph(
+        Paragraph::new()
+            .add_run(
+                Run::new()
+                    .add_text("SoText — Similarity Report")
+                    .size(36) // 18pt
+                    .bold()
+                    .color("2F5496"),
+            ),
+    );
+    docx = docx.add_paragraph(
+        Paragraph::new()
+            .add_run(
+                Run::new()
+                    .add_text(format!("Generated: {}", chrono_now()))
+                    .size(20)
+                    .color("666666"),
+            ),
+    );
+
+    // ─── Legend ──────────────────────────────────────────────
+    docx = docx.add_paragraph(Paragraph::new()); // spacer
+    docx = docx.add_paragraph(
+        Paragraph::new()
+            .add_run(Run::new().add_text("Legend: ").size(20).bold())
+            .add_run(
+                Run::new()
+                    .add_text(" EXACT MATCH ")
+                    .size(20)
+                    .bold()
+                    .color("7B5B00")
+                    .highlight("yellow"),
+            )
+            .add_run(Run::new().add_text(" = N-gram   ").size(20))
+            .add_run(
+                Run::new()
+                    .add_text(" PARAPHRASED ")
+                    .size(20)
+                    .bold()
+                    .color("6B2D00")
+                    .highlight("darkYellow"),
+            )
+            .add_run(Run::new().add_text(" = Jaccard/Levenshtein").size(20)),
+    );
+    docx = docx.add_paragraph(Paragraph::new()); // spacer
+
+    // ─── Summary Table ──────────────────────────────────────
+    docx = docx.add_paragraph(
+        Paragraph::new()
+            .add_run(Run::new().add_text("Summary").size(28).bold().color("2F5496")),
+    );
+
+    // Build table rows
+    let header_row = TableRow::new(vec![
+        TableCell::new()
+            .add_paragraph(Paragraph::new().add_run(Run::new().add_text("File A").size(20).bold().color("FFFFFF")))
+            .shading(Shading::new().fill("2F5496")),
+        TableCell::new()
+            .add_paragraph(Paragraph::new().add_run(Run::new().add_text("File B").size(20).bold().color("FFFFFF")))
+            .shading(Shading::new().fill("2F5496")),
+        TableCell::new()
+            .add_paragraph(Paragraph::new().add_run(Run::new().add_text("Cosine Score").size(20).bold().color("FFFFFF")))
+            .shading(Shading::new().fill("2F5496")),
+    ]);
+
+    let mut rows = vec![header_row];
+
+    for pair in results {
+        let (bg_color, score_color) = if pair.score >= 80.0 {
+            ("FFC7CE", "CC0000")
+        } else if pair.score >= 60.0 {
+            ("FFEB9C", "996600")
+        } else {
+            ("FFFFFF", "333333")
+        };
+
+        rows.push(TableRow::new(vec![
+            TableCell::new()
+                .add_paragraph(Paragraph::new().add_run(Run::new().add_text(&pair.file_a).size(18)))
+                .shading(Shading::new().fill(bg_color)),
+            TableCell::new()
+                .add_paragraph(Paragraph::new().add_run(Run::new().add_text(&pair.file_b).size(18)))
+                .shading(Shading::new().fill(bg_color)),
+            TableCell::new()
+                .add_paragraph(Paragraph::new().add_run(
+                    Run::new()
+                        .add_text(format!("{:.1}%", pair.score))
+                        .size(18)
+                        .bold()
+                        .color(score_color),
+                ))
+                .shading(Shading::new().fill(bg_color)),
+        ]));
+    }
+
+    docx = docx.add_table(Table::new(rows));
+    docx = docx.add_paragraph(Paragraph::new()); // spacer
+
+    // ─── Detail Comparisons ─────────────────────────────────
+    for (i, detail) in details.iter().enumerate() {
+        let score = results.get(i).map(|p| p.score).unwrap_or(0.0);
+
+        // Pair header
+        docx = docx.add_paragraph(
+            Paragraph::new()
+                .add_run(
+                    Run::new()
+                        .add_text(format!(
+                            "━━━ Pair {} ━━━  {} ↔ {}  ━━━  Cosine: {:.1}%",
+                            i + 1, detail.file_a, detail.file_b, score
+                        ))
+                        .size(24)
+                        .bold()
+                        .color("FFFFFF"),
+                )
+                .page_break_before(i > 0), // page break between pairs
+        );
+        // Add shading via a table cell trick — or just use colored text on white
+        // Actually let's just use bold colored text for the header.
+
+        // File A label
+        docx = docx.add_paragraph(
+            Paragraph::new()
+                .add_run(
+                    Run::new()
+                        .add_text(format!("📄 {}", detail.file_a))
+                        .size(22)
+                        .bold()
+                        .color("2F5496"),
+                ),
+        );
+
+        // File A content with highlights
+        let para_a = build_docx_highlighted_paragraph(
+            &detail.content_a,
+            &detail.highlights_a,
+            &detail.suspicious_sentences,
+            true,
+        );
+        docx = docx.add_paragraph(para_a);
+        docx = docx.add_paragraph(Paragraph::new()); // spacer
+
+        // File B label
+        docx = docx.add_paragraph(
+            Paragraph::new()
+                .add_run(
+                    Run::new()
+                        .add_text(format!("📄 {}", detail.file_b))
+                        .size(22)
+                        .bold()
+                        .color("2F5496"),
+                ),
+        );
+
+        // File B content with highlights
+        let para_b = build_docx_highlighted_paragraph(
+            &detail.content_b,
+            &detail.highlights_b,
+            &detail.suspicious_sentences,
+            false,
+        );
+        docx = docx.add_paragraph(para_b);
+
+        // Info line
+        docx = docx.add_paragraph(
+            Paragraph::new()
+                .add_run(
+                    Run::new()
+                        .add_text(format!(
+                            "N-gram matches: {} | Suspicious sentences: {}",
+                            detail.common_phrase_count,
+                            detail.suspicious_sentences.len()
+                        ))
+                        .size(18)
+                        .italic()
+                        .color("888888"),
+                ),
+        );
+        docx = docx.add_paragraph(Paragraph::new()); // spacer
+    }
+
+    // Write file
+    let file = std::fs::File::create(filepath).map_err(|e| e.to_string())?;
+    docx.build().pack(file).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+/// Build a DOCX paragraph with highlighted text runs
+fn build_docx_highlighted_paragraph(
+    content: &str,
+    ngram_ranges: &[[usize; 2]],
+    suspicious: &[crate::sentence::SuspiciousPair],
+    is_a: bool,
+) -> docx_rs::Paragraph {
+    use docx_rs::{Paragraph, Run};
+
+    let mut all_ranges: Vec<(usize, usize, &str)> = Vec::new();
+
+    for [s, e] in ngram_ranges {
+        all_ranges.push((*s, *e, "exact"));
+    }
+    for pair in suspicious {
+        let [s, e] = if is_a { pair.pos_a } else { pair.pos_b };
+        let already_covered = ngram_ranges.iter().any(|[ns, ne]| *ns <= s && *ne >= e);
+        if !already_covered {
+            all_ranges.push((s, e, "para"));
+        }
+    }
+
+    let max_len = content.len().min(50000);
+    let content_slice = &content[..max_len];
+
+    if all_ranges.is_empty() {
+        let mut p = Paragraph::new();
+        p = p.add_run(Run::new().add_text(content_slice).size(18));
+        return p;
+    }
+
+    all_ranges.sort_by_key(|r| r.0);
+
+    let mut paragraph = Paragraph::new();
+    let mut last_end = 0;
+
+    for (start, end, kind) in &all_ranges {
+        let start = *start;
+        let end = (*end).min(max_len);
+        if start >= max_len { break; }
+        if start < last_end { continue; }
+
+        if start > last_end {
+            let normal_text = &content_slice[last_end..start];
+            if !normal_text.is_empty() {
+                paragraph = paragraph.add_run(Run::new().add_text(normal_text).size(18));
+            }
+        }
+
+        let highlighted_text = &content_slice[start..end];
+        let run = if *kind == "exact" {
+            Run::new()
+                .add_text(highlighted_text)
+                .size(18)
+                .bold()
+                .color("7B5B00")
+                .highlight("yellow")
+        } else {
+            Run::new()
+                .add_text(highlighted_text)
+                .size(18)
+                .bold()
+                .color("6B2D00")
+                .highlight("darkYellow")
+        };
+        paragraph = paragraph.add_run(run);
+        last_end = end;
+    }
+
+    if last_end < max_len {
+        let tail = &content_slice[last_end..];
+        if !tail.is_empty() {
+            paragraph = paragraph.add_run(Run::new().add_text(tail).size(18));
+        }
+    }
+
+    if content.len() > max_len {
+        paragraph = paragraph.add_run(
+            Run::new()
+                .add_text(format!("\n[... truncated, {} chars total]", content.len()))
+                .size(16)
+                .italic()
+                .color("999999"),
+        );
+    }
+
+    paragraph
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs;
 
-    #[test]
-    fn test_export_excel() {
+    fn sample_data() -> (Vec<SimilarityPair>, Vec<crate::analysis::DetailResult>) {
         let results = vec![
             SimilarityPair {
                 file_a: "high.txt".to_string(),
@@ -866,11 +1153,30 @@ mod tests {
                 suspicious_sentences: vec![],
             },
         ];
+        (results, details)
+    }
+
+    #[test]
+    fn test_export_excel() {
+        let (results, details) = sample_data();
         let path = std::env::temp_dir().join("test_sotext.xlsx");
         let path_str = path.to_string_lossy().to_string();
 
         export_excel(&results, &details, &path_str).unwrap();
         assert!(path.exists());
+
+        fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn test_export_docx() {
+        let (results, details) = sample_data();
+        let path = std::env::temp_dir().join("test_sotext_report.docx");
+        let path_str = path.to_string_lossy().to_string();
+
+        export_docx_report(&results, &details, &path_str).unwrap();
+        assert!(path.exists());
+        assert!(fs::metadata(&path).unwrap().len() > 0);
 
         fs::remove_file(&path).ok();
     }

@@ -8,8 +8,8 @@
 
 | Installer | Link |
 |---|---|
-| **Windows Setup (EXE)** | [SoText_1.2.0_x64-setup.exe](https://github.com/nguyennhuanhle/sotext/releases/download/v1.2.0/SoText_1.2.0_x64-setup.exe) |
-| **Windows Installer (MSI)** | [SoText_1.2.0_x64_en-US.msi](https://github.com/nguyennhuanhle/sotext/releases/download/v1.2.0/SoText_1.2.0_x64_en-US.msi) |
+| **Windows Setup (EXE)** | [SoText_1.3.0_x64-setup.exe](https://github.com/nguyennhuanhle/sotext/releases/download/v1.3.0/SoText_1.3.0_x64-setup.exe) |
+| **Windows Installer (MSI)** | [SoText_1.3.0_x64_en-US.msi](https://github.com/nguyennhuanhle/sotext/releases/download/v1.3.0/SoText_1.3.0_x64_en-US.msi) |
 
 👉 [All releases / Tất cả phiên bản](https://github.com/nguyennhuanhle/sotext/releases)
 
@@ -45,6 +45,7 @@
 - **Excel (.xlsx)** — Multi-sheet workbook with summary + highlighted comparisons / Bảng tính nhiều sheet với tóm tắt + so sánh highlight
 - **HTML Report** — Full report with highlighted comparisons / Báo cáo đầy đủ với highlight so sánh
 - **PDF Report** — Professional PDF with color-coded highlights / Báo cáo PDF chuyên nghiệp với highlight màu
+- **DOCX Report** — Word document with rich-text highlighted comparisons / Tài liệu Word với so sánh highlight rich-text
 
 ### ⚙️ Configurable Parameters / Thông số tùy chỉnh
 - **Threshold (10–100%)** — Filter results by minimum Cosine Score / Lọc kết quả theo điểm Cosine tối thiểu
@@ -61,7 +62,7 @@
 2. **Template** _(optional)_ — Upload a prompt file to exclude / Tải đề bài để loại trừ
 3. **Scan** — Click 🔍 to start analysis / Nhấn 🔍 để bắt đầu phân tích
 4. **Review** — Click any row for side-by-side details / Nhấn vào hàng để xem chi tiết
-5. **Export** — Save results as Excel, HTML, or PDF / Lưu kết quả ra Excel, HTML, hoặc PDF
+5. **Export** — Save results as Excel, HTML, PDF, or DOCX / Lưu kết quả ra Excel, HTML, PDF, hoặc DOCX
 
 ---
 
@@ -77,7 +78,7 @@
 | PDF Parsing | `pdf-extract` |
 | HTML Parsing | `scraper` |
 | Hashing | `md-5` |
-| Export | `rust_xlsxwriter`, `genpdf` |
+| Export | `rust_xlsxwriter`, `genpdf`, `docx-rs` |
 
 ---
 
