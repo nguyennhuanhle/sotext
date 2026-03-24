@@ -8,8 +8,8 @@
 
 | Installer | Link |
 |---|---|
-| **Windows Setup (EXE)** | [SoText_1.1.0_x64-setup.exe](https://github.com/nguyennhuanhle/sotext/releases/download/v1.1.0/SoText_1.1.0_x64-setup.exe) |
-| **Windows Installer (MSI)** | [SoText_1.1.0_x64_en-US.msi](https://github.com/nguyennhuanhle/sotext/releases/download/v1.1.0/SoText_1.1.0_x64_en-US.msi) |
+| **Windows Setup (EXE)** | [SoText_1.2.0_x64-setup.exe](https://github.com/nguyennhuanhle/sotext/releases/download/v1.2.0/SoText_1.2.0_x64-setup.exe) |
+| **Windows Installer (MSI)** | [SoText_1.2.0_x64_en-US.msi](https://github.com/nguyennhuanhle/sotext/releases/download/v1.2.0/SoText_1.2.0_x64_en-US.msi) |
 
 👉 [All releases / Tất cả phiên bản](https://github.com/nguyennhuanhle/sotext/releases)
 
