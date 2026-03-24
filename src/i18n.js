@@ -31,6 +31,7 @@ const i18n = {
     statusDetailLoading: 'Loading comparison…',
     statusDetailError: (err) => `Detail error: ${err}`,
     statusError: (err) => `Error: ${err}`,
+    statusDetectedLang: (lang) => `Language: ${lang}`,
     
     // Results table
     colFileA: 'File A',
@@ -110,6 +111,7 @@ const i18n = {
     statusDetailLoading: 'Đang tải so sánh…',
     statusDetailError: (err) => `Lỗi chi tiết: ${err}`,
     statusError: (err) => `Lỗi: ${err}`,
+    statusDetectedLang: (lang) => `Ngôn ngữ: ${lang}`,
     
     // Results table
     colFileA: 'File A',

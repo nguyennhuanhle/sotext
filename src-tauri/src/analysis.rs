@@ -29,6 +29,7 @@ pub struct ScanResult {
     pub duplicate_groups: Vec<Vec<String>>,
     pub file_count: usize,
     pub message: String,
+    pub detected_language: String,
 }
 
 /// Detail result for side-by-side comparison
@@ -164,6 +165,7 @@ pub fn scan_folder(folder: &str, threshold: f64, template_text: Option<&str>) ->
             duplicate_groups: vec![],
             file_count: n,
             message: format!("Need at least 2 supported files to compare. Found {n}."),
+            detected_language: String::new(),
         };
     }
 
@@ -182,8 +184,9 @@ pub fn scan_folder(folder: &str, threshold: f64, template_text: Option<&str>) ->
     filenames.sort();
     let contents: Vec<String> = filenames.iter().map(|f| files[f].clone()).collect();
 
-    // TF-IDF + Cosine Similarity
-    let (vectors, _) = tfidf::compute_tfidf_vectors(&contents);
+    // TF-IDF + Cosine Similarity (with auto language detection)
+    let (vectors, _, detected_lang) = tfidf::compute_tfidf_vectors(&contents);
+    let lang_name = tfidf::lang_display_name(detected_lang);
     let raw_pairs = tfidf::compute_pairwise_similarities(&vectors, threshold);
 
     let pairs: Vec<SimilarityPair> = raw_pairs
@@ -215,6 +218,7 @@ pub fn scan_folder(folder: &str, threshold: f64, template_text: Option<&str>) ->
         duplicate_groups,
         file_count: n,
         message,
+        detected_language: lang_name.to_string(),
     }
 }
 

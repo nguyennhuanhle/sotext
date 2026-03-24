@@ -25,4 +25,6 @@ dotext = "0.1"
 scraper = "0.22"
 rust-stemmers = "1.2"
 strsim = "0.11"
+whatlang = "0.16"
+stop-words = "0.8"
 

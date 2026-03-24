@@ -289,7 +289,8 @@ async function startScan() {
     });
     currentResults = result.pairs;
 
-    setStatus(result.message);
+    const langInfo = result.detected_language ? ` 🌐 ${t('statusDetectedLang')(result.detected_language)}` : '';
+    setStatus(result.message + langInfo);
 
     sortDirection = { col: 'score', asc: false };
     sortAndRender();
