@@ -16,7 +16,6 @@ pub fn run() {
             commands::count_files,
             commands::pick_template_file,
             commands::pick_save_file,
-            commands::export_csv,
             commands::export_excel,
             commands::export_html,
             commands::export_pdf,

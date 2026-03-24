@@ -42,8 +42,7 @@
   - 🟠 **Orange** — Paraphrased (Jaccard/Levenshtein) / Diễn giải lại
 
 ### 📊 Export Results / Xuất kết quả
-- **CSV** — For spreadsheet analysis / Phân tích bảng tính
-- **Excel (.xlsx)** — Formatted workbook / Bảng tính có định dạng
+- **Excel (.xlsx)** — Multi-sheet workbook with summary + highlighted comparisons / Bảng tính nhiều sheet với tóm tắt + so sánh highlight
 - **HTML Report** — Full report with highlighted comparisons / Báo cáo đầy đủ với highlight so sánh
 - **PDF Report** — Professional PDF with color-coded highlights / Báo cáo PDF chuyên nghiệp với highlight màu
 
@@ -62,7 +61,7 @@
 2. **Template** _(optional)_ — Upload a prompt file to exclude / Tải đề bài để loại trừ
 3. **Scan** — Click 🔍 to start analysis / Nhấn 🔍 để bắt đầu phân tích
 4. **Review** — Click any row for side-by-side details / Nhấn vào hàng để xem chi tiết
-5. **Export** — Save results as CSV, Excel, HTML, or PDF / Lưu kết quả ra CSV, Excel, HTML, hoặc PDF
+5. **Export** — Save results as Excel, HTML, or PDF / Lưu kết quả ra Excel, HTML, hoặc PDF
 
 ---
 
@@ -78,7 +77,7 @@
 | PDF Parsing | `pdf-extract` |
 | HTML Parsing | `scraper` |
 | Hashing | `md-5` |
-| Export | `csv`, `rust_xlsxwriter`, `genpdf` |
+| Export | `rust_xlsxwriter`, `genpdf` |
 
 ---
 

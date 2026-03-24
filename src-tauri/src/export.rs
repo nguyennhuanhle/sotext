@@ -1,38 +1,18 @@
-//! CSV and Excel export functionality.
+//! Excel, HTML, and PDF export functionality.
 
 use crate::analysis::{DetailResult, SimilarityPair};
 use rust_xlsxwriter::*;
 use std::path::Path;
 
-/// Export results to CSV file
-pub fn export_csv(results: &[SimilarityPair], filepath: &str) -> Result<(), String> {
-    let mut wtr = csv::Writer::from_path(filepath).map_err(|e| e.to_string())?;
-
-    wtr.write_record(["File A", "File B", "Cosine Score"])
-        .map_err(|e| e.to_string())?;
-
-    for pair in results {
-        wtr.write_record([
-            &pair.file_a,
-            &pair.file_b,
-            &format!("{:.1}", pair.score),
-        ])
-        .map_err(|e| e.to_string())?;
-    }
-
-    wtr.flush().map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-/// Export results to Excel file with color-coded rows
-pub fn export_excel(results: &[SimilarityPair], filepath: &str) -> Result<(), String> {
+/// Export results to Excel file with summary + detail sheets with highlighted text
+pub fn export_excel(
+    results: &[SimilarityPair],
+    details: &[DetailResult],
+    filepath: &str,
+) -> Result<(), String> {
     let mut workbook = Workbook::new();
-    let worksheet = workbook.add_worksheet();
-    worksheet
-        .set_name("Similarity Results")
-        .map_err(|e| e.to_string())?;
 
-    // Header format
+    // ─── Reusable formats ────────────────────────────────────
     let header_format = Format::new()
         .set_bold()
         .set_font_color(Color::White)
@@ -40,15 +20,6 @@ pub fn export_excel(results: &[SimilarityPair], filepath: &str) -> Result<(), St
         .set_align(FormatAlign::Center)
         .set_font_size(11);
 
-    // Write headers
-    let headers = ["File A", "File B", "Cosine Score"];
-    for (col, &header) in headers.iter().enumerate() {
-        worksheet
-            .write_string_with_format(0, col as u16, header, &header_format)
-            .map_err(|e| e.to_string())?;
-    }
-
-    // Row formats
     let high_format = Format::new()
         .set_background_color(Color::RGB(0xFFC7CE));
     let med_format = Format::new()
@@ -62,51 +33,246 @@ pub fn export_excel(results: &[SimilarityPair], filepath: &str) -> Result<(), St
         .set_background_color(Color::RGB(0xFFEB9C))
         .set_align(FormatAlign::Center);
 
-    // Write data rows
+    // ═══ Sheet 1: Summary ════════════════════════════════════
+    let summary = workbook.add_worksheet();
+    summary
+        .set_name("Summary")
+        .map_err(|e| e.to_string())?;
+
+    let headers = ["File A", "File B", "Cosine Score"];
+    for (col, &h) in headers.iter().enumerate() {
+        summary
+            .write_string_with_format(0, col as u16, h, &header_format)
+            .map_err(|e| e.to_string())?;
+    }
+
     for (i, pair) in results.iter().enumerate() {
         let row = (i + 1) as u32;
-
         if pair.score >= 80.0 {
-            worksheet
-                .write_string_with_format(row, 0, &pair.file_a, &high_format)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_string_with_format(row, 1, &pair.file_b, &high_format)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_number_with_format(row, 2, pair.score, &high_score)
-                .map_err(|e| e.to_string())?;
+            summary.write_string_with_format(row, 0, &pair.file_a, &high_format).map_err(|e| e.to_string())?;
+            summary.write_string_with_format(row, 1, &pair.file_b, &high_format).map_err(|e| e.to_string())?;
+            summary.write_number_with_format(row, 2, pair.score, &high_score).map_err(|e| e.to_string())?;
         } else if pair.score >= 60.0 {
-            worksheet
-                .write_string_with_format(row, 0, &pair.file_a, &med_format)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_string_with_format(row, 1, &pair.file_b, &med_format)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_number_with_format(row, 2, pair.score, &med_score)
-                .map_err(|e| e.to_string())?;
+            summary.write_string_with_format(row, 0, &pair.file_a, &med_format).map_err(|e| e.to_string())?;
+            summary.write_string_with_format(row, 1, &pair.file_b, &med_format).map_err(|e| e.to_string())?;
+            summary.write_number_with_format(row, 2, pair.score, &med_score).map_err(|e| e.to_string())?;
         } else {
-            worksheet
-                .write_string(row, 0, &pair.file_a)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_string(row, 1, &pair.file_b)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .write_number_with_format(row, 2, pair.score, &score_center)
-                .map_err(|e| e.to_string())?;
+            summary.write_string(row, 0, &pair.file_a).map_err(|e| e.to_string())?;
+            summary.write_string(row, 1, &pair.file_b).map_err(|e| e.to_string())?;
+            summary.write_number_with_format(row, 2, pair.score, &score_center).map_err(|e| e.to_string())?;
         }
     }
 
-    // Set column widths
-    worksheet.set_column_width(0, 40).map_err(|e| e.to_string())?;
-    worksheet.set_column_width(1, 40).map_err(|e| e.to_string())?;
-    worksheet.set_column_width(2, 18).map_err(|e| e.to_string())?;
+    summary.set_column_width(0, 40).map_err(|e| e.to_string())?;
+    summary.set_column_width(1, 40).map_err(|e| e.to_string())?;
+    summary.set_column_width(2, 18).map_err(|e| e.to_string())?;
+
+    // ═══ Sheet 2: Details (all pairs in one sheet) ════════════
+    if !details.is_empty() {
+        let label_format = Format::new()
+            .set_bold()
+            .set_font_size(11)
+            .set_background_color(Color::RGB(0xD6E4F0));
+        let pair_header_format = Format::new()
+            .set_bold()
+            .set_font_size(12)
+            .set_font_color(Color::White)
+            .set_background_color(Color::RGB(0x2F5496));
+        let info_format = Format::new()
+            .set_italic()
+            .set_font_size(10);
+        let wrap_format = Format::new()
+            .set_text_wrap()
+            .set_align(FormatAlign::Top)
+            .set_font_size(10);
+        let exact_fmt = Format::new()
+            .set_bold()
+            .set_font_color(Color::RGB(0x7B5B00))
+            .set_background_color(Color::RGB(0xFECA57))
+            .set_font_size(10);
+        let para_fmt = Format::new()
+            .set_bold()
+            .set_font_color(Color::RGB(0x6B2D00))
+            .set_background_color(Color::RGB(0xFF9F43))
+            .set_font_size(10);
+        let normal_fmt = Format::new()
+            .set_font_size(10);
+        let legend_exact = Format::new()
+            .set_bold()
+            .set_font_color(Color::RGB(0x7B5B00))
+            .set_background_color(Color::RGB(0xFECA57));
+        let legend_para = Format::new()
+            .set_bold()
+            .set_font_color(Color::RGB(0x6B2D00))
+            .set_background_color(Color::RGB(0xFF9F43));
+
+        let ws = workbook.add_worksheet();
+        ws.set_name("Details").map_err(|e| e.to_string())?;
+        ws.set_column_width(0, 120).map_err(|e| e.to_string())?;
+
+        // Legend at top
+        let legend_bold = Format::new().set_bold();
+        let legend_normal = Format::new();
+        let legend_normal2 = Format::new();
+        ws.write_rich_string(0, 0, &[
+            (&legend_bold, "Legend: "),
+            (&legend_exact, " EXACT MATCH "),
+            (&legend_normal, " = N-gram   "),
+            (&legend_para, " PARAPHRASED "),
+            (&legend_normal2, " = Jaccard/Levenshtein"),
+        ]).map_err(|e| e.to_string())?;
+
+        let mut row: u32 = 2;
+
+        for (i, detail) in details.iter().enumerate() {
+            let score = results.get(i).map(|p| p.score).unwrap_or(0.0);
+
+            // ── Pair header ──
+            ws.write_string_with_format(row, 0,
+                &format!("━━━ Pair {} ━━━  {} ↔ {}  ━━━  Cosine: {:.1}%", i + 1, detail.file_a, detail.file_b, score),
+                &pair_header_format,
+            ).map_err(|e| e.to_string())?;
+            ws.set_row_height(row, 24.0).map_err(|e| e.to_string())?;
+            row += 1;
+
+            // ── File A ──
+            ws.write_string_with_format(row, 0,
+                &format!("📄 {}", detail.file_a), &label_format,
+            ).map_err(|e| e.to_string())?;
+            row += 1;
+
+            write_highlighted_cell(
+                ws, row, 0,
+                &detail.content_a,
+                &detail.highlights_a,
+                &detail.suspicious_sentences,
+                true,
+                &normal_fmt, &exact_fmt, &para_fmt, &wrap_format,
+            )?;
+            row += 2;
+
+            // ── File B ──
+            ws.write_string_with_format(row, 0,
+                &format!("📄 {}", detail.file_b), &label_format,
+            ).map_err(|e| e.to_string())?;
+            row += 1;
+
+            write_highlighted_cell(
+                ws, row, 0,
+                &detail.content_b,
+                &detail.highlights_b,
+                &detail.suspicious_sentences,
+                false,
+                &normal_fmt, &exact_fmt, &para_fmt, &wrap_format,
+            )?;
+            row += 1;
+
+            // Info row
+            ws.write_string_with_format(row, 0,
+                &format!("N-gram matches: {} | Suspicious sentences: {}",
+                    detail.common_phrase_count,
+                    detail.suspicious_sentences.len()),
+                &info_format,
+            ).map_err(|e| e.to_string())?;
+            row += 3; // spacing between pairs
+        }
+    }
 
     workbook
         .save(Path::new(filepath))
         .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+/// Write document content with highlighted spans into a single cell using RichString
+fn write_highlighted_cell(
+    ws: &mut Worksheet,
+    row: u32,
+    col: u16,
+    content: &str,
+    ngram_ranges: &[[usize; 2]],
+    suspicious: &[crate::sentence::SuspiciousPair],
+    is_a: bool,
+    normal_fmt: &Format,
+    exact_fmt: &Format,
+    para_fmt: &Format,
+    wrap_format: &Format,
+) -> Result<(), String> {
+    // Collect all ranges
+    let mut all_ranges: Vec<(usize, usize, &str)> = Vec::new();
+
+    for [s, e] in ngram_ranges {
+        all_ranges.push((*s, *e, "exact"));
+    }
+    for pair in suspicious {
+        let [s, e] = if is_a { pair.pos_a } else { pair.pos_b };
+        let already_covered = ngram_ranges.iter().any(|[ns, ne]| *ns <= s && *ne >= e);
+        if !already_covered {
+            all_ranges.push((s, e, "para"));
+        }
+    }
+
+    // Truncate for Excel cell limits (~32k chars)
+    let max_len = content.len().min(30000);
+    let content_slice = &content[..max_len];
+
+    if all_ranges.is_empty() {
+        ws.write_string_with_format(row, col, content_slice, wrap_format)
+            .map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
+    all_ranges.sort_by_key(|r| r.0);
+
+    // Build rich string segments: Vec<(&Format, &str)>
+    let mut segments: Vec<(&Format, String)> = Vec::new();
+    let mut last_end = 0;
+
+    for (start, end, kind) in &all_ranges {
+        let start = *start;
+        let end = (*end).min(max_len);
+        if start >= max_len { break; }
+        if start < last_end { continue; }
+
+        if start > last_end {
+            let normal_text = &content_slice[last_end..start];
+            if !normal_text.is_empty() {
+                segments.push((normal_fmt, normal_text.to_string()));
+            }
+        }
+
+        let fmt = if *kind == "exact" { exact_fmt } else { para_fmt };
+        segments.push((fmt, content_slice[start..end].to_string()));
+        last_end = end;
+    }
+
+    if last_end < max_len {
+        let tail = &content_slice[last_end..];
+        if !tail.is_empty() {
+            segments.push((normal_fmt, tail.to_string()));
+        }
+    }
+
+    let truncate_fmt = Format::new().set_italic().set_font_size(9);
+
+    if content.len() > max_len {
+        segments.push((
+            &truncate_fmt,
+            format!("\n[... truncated, {} chars total]", content.len()),
+        ));
+    }
+
+    // Convert to borrowed refs for write_rich_string
+    let rich_refs: Vec<(&Format, &str)> = segments.iter().map(|(f, s)| (*f, s.as_str())).collect();
+
+    ws.write_rich_string_with_format(row, col, &rich_refs, wrap_format)
+        .map_err(|e| e.to_string())?;
+
+    // Auto-size row height roughly (Excel doesn't do this automatically for rich strings)
+    let line_count = content_slice.matches('\n').count() + 1;
+    let estimated_height = (line_count as f64 * 14.0).min(400.0).max(60.0);
+    ws.set_row_height(row, estimated_height).map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -665,28 +831,6 @@ mod tests {
     use std::fs;
 
     #[test]
-    fn test_export_csv() {
-        let results = vec![
-            SimilarityPair {
-                file_a: "test_a.txt".to_string(),
-                file_b: "test_b.txt".to_string(),
-                score: 85.5,
-            },
-        ];
-        let path = std::env::temp_dir().join("test_sotext.csv");
-        let path_str = path.to_string_lossy().to_string();
-
-        export_csv(&results, &path_str).unwrap();
-
-        let content = fs::read_to_string(&path).unwrap();
-        assert!(content.contains("File A"));
-        assert!(content.contains("test_a.txt"));
-        assert!(content.contains("85.5"));
-
-        fs::remove_file(&path).ok();
-    }
-
-    #[test]
     fn test_export_excel() {
         let results = vec![
             SimilarityPair {
@@ -700,10 +844,32 @@ mod tests {
                 score: 65.0,
             },
         ];
+        let details = vec![
+            crate::analysis::DetailResult {
+                file_a: "high.txt".to_string(),
+                file_b: "score.txt".to_string(),
+                content_a: "This is the first document content for testing.".to_string(),
+                content_b: "This is the second document content for testing.".to_string(),
+                highlights_a: vec![[0, 7]],
+                highlights_b: vec![[0, 7]],
+                common_phrase_count: 1,
+                suspicious_sentences: vec![],
+            },
+            crate::analysis::DetailResult {
+                file_a: "med.txt".to_string(),
+                file_b: "score.txt".to_string(),
+                content_a: "Medium similarity content here.".to_string(),
+                content_b: "Medium similarity content there.".to_string(),
+                highlights_a: vec![],
+                highlights_b: vec![],
+                common_phrase_count: 0,
+                suspicious_sentences: vec![],
+            },
+        ];
         let path = std::env::temp_dir().join("test_sotext.xlsx");
         let path_str = path.to_string_lossy().to_string();
 
-        export_excel(&results, &path_str).unwrap();
+        export_excel(&results, &details, &path_str).unwrap();
         assert!(path.exists());
 
         fs::remove_file(&path).ok();

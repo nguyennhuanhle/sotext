@@ -19,7 +19,7 @@ const clearBtn = document.getElementById('clearBtn');
 const thresholdInput = document.getElementById('threshold');
 const ngramInput = document.getElementById('ngramSize');
 const templateBtn = document.getElementById('templateBtn');
-const exportCsvBtn = document.getElementById('exportCsvBtn');
+
 const exportXlsxBtn = document.getElementById('exportXlsxBtn');
 const exportHtmlBtn = document.getElementById('exportHtmlBtn');
 const exportPdfBtn = document.getElementById('exportPdfBtn');
@@ -60,7 +60,7 @@ function applyLanguage() {
   document.querySelector('label[for="threshold"]').textContent = L.thresholdLabel;
   document.querySelector('label[for="ngramSize"]').textContent = L.ngramLabel;
   if (!currentTemplatePath) templateBtn.textContent = L.templateBtn;
-  exportCsvBtn.textContent = L.exportCsv;
+
   exportXlsxBtn.textContent = L.exportXlsx;
   exportHtmlBtn.textContent = L.exportHtml;
   exportPdfBtn.textContent = L.exportPdf;
@@ -165,7 +165,7 @@ clearBtn.addEventListener('click', () => {
   resultsBody.innerHTML = '';
   emptyState.classList.remove('hidden');
   detailPanel.classList.add('hidden');
-  exportCsvBtn.disabled = true;
+
   exportXlsxBtn.disabled = true;
   exportHtmlBtn.disabled = true;
   exportPdfBtn.disabled = true;
@@ -188,22 +188,7 @@ templateBtn.addEventListener('click', async () => {
   }
 });
 
-exportCsvBtn.addEventListener('click', async () => {
-  if (currentResults.length === 0) return;
-  try {
-    const filepath = await invoke('pick_save_file', {
-      defaultName: 'sotext_results.csv',
-      filterName: 'CSV files',
-      filterExt: 'csv',
-    });
-    if (filepath) {
-      await invoke('export_csv', { results: currentResults, filepath });
-      setStatus(t('statusExported')(filepath.split(/[\\/]/).pop()));
-    }
-  } catch (err) {
-    setStatus(t('statusExportError')(err));
-  }
-});
+
 
 exportXlsxBtn.addEventListener('click', async () => {
   if (currentResults.length === 0) return;
@@ -214,8 +199,14 @@ exportXlsxBtn.addEventListener('click', async () => {
       filterExt: 'xlsx',
     });
     if (filepath) {
-      await invoke('export_excel', { results: currentResults, filepath });
-      setStatus(t('statusExported')(filepath.split(/[\\/]/).pop()));
+      const ngramSize = parseInt(ngramInput.value) || 5;
+      await invoke('export_excel', {
+        results: currentResults,
+        folder: currentFolder,
+        ngramSize,
+        filepath,
+      });
+      setStatus(t('statusExported')(filepath.split(/[\\\/]/).pop()));
     }
   } catch (err) {
     setStatus(t('statusExportError')(err));
@@ -301,7 +292,7 @@ async function startScan() {
   // UI: scanning state
   scanBtn.disabled = true;
   scanBtn.classList.add('scanning');
-  exportCsvBtn.disabled = true;
+
   exportXlsxBtn.disabled = true;
   exportHtmlBtn.disabled = true;
   exportPdfBtn.disabled = true;
@@ -324,7 +315,7 @@ async function startScan() {
     sortAndRender();
 
     if (currentResults.length > 0) {
-      exportCsvBtn.disabled = false;
+
       exportXlsxBtn.disabled = false;
       exportHtmlBtn.disabled = false;
       exportPdfBtn.disabled = false;

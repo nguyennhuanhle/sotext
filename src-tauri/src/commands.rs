@@ -96,19 +96,20 @@ pub async fn pick_save_file(
     rx.recv().map_err(|e| e.to_string())
 }
 
-/// Export similarity results to CSV
-#[tauri::command]
-pub fn export_csv(results: Vec<analysis::SimilarityPair>, filepath: String) -> Result<(), String> {
-    export::export_csv(&results, &filepath)
-}
-
-/// Export similarity results to Excel
+/// Export similarity results to Excel with highlighted detail sheets
 #[tauri::command]
 pub fn export_excel(
     results: Vec<analysis::SimilarityPair>,
+    folder: String,
+    ngram_size: usize,
     filepath: String,
 ) -> Result<(), String> {
-    export::export_excel(&results, &filepath)
+    let details: Vec<analysis::DetailResult> = results
+        .iter()
+        .map(|pair| analysis::get_detail(&folder, &pair.file_a, &pair.file_b, ngram_size, 0.7))
+        .collect();
+
+    export::export_excel(&results, &details, &filepath)
 }
 
 /// Export HTML comparison report
