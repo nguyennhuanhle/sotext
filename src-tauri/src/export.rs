@@ -733,6 +733,25 @@ fn truncate_filename(name: &str, max_len: usize) -> String {
     }
 }
 
+/// Try to find a font file by name in a directory (case-insensitive)
+fn find_font_file(dir: &std::path::Path, name: &str) -> Option<std::path::PathBuf> {
+    let name_lower = name.to_lowercase();
+    // Try exact match first
+    let exact = dir.join(name);
+    if exact.exists() {
+        return Some(exact);
+    }
+    // Case-insensitive fallback
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            if entry.file_name().to_string_lossy().to_lowercase() == name_lower {
+                return Some(entry.path());
+            }
+        }
+    }
+    None
+}
+
 /// Load a system font for PDF generation
 fn load_system_font() -> Result<genpdf::fonts::FontFamily<genpdf::fonts::FontData>, String> {
     // Try common system font directories
@@ -747,6 +766,7 @@ fn load_system_font() -> Result<genpdf::fonts::FontFamily<genpdf::fonts::FontDat
         vec![
             std::path::PathBuf::from("/Library/Fonts"),
             std::path::PathBuf::from("/System/Library/Fonts"),
+            std::path::PathBuf::from("/System/Library/Fonts/Supplemental"),
             dirs_next()
                 .map(|h| h.join("Library/Fonts"))
                 .unwrap_or_default(),
@@ -763,24 +783,29 @@ fn load_system_font() -> Result<genpdf::fonts::FontFamily<genpdf::fonts::FontDat
             continue;
         }
 
-        // Try Arial with exact filenames (Windows standard)
-        let regular = dir.join("arial.ttf");
-        let bold = dir.join("arialbd.ttf");
-        let italic = dir.join("ariali.ttf");
-        let bold_italic = dir.join("arialbi.ttf");
+        // Try Arial with case-insensitive lookup (handles Windows "arial.ttf" and macOS "Arial.ttf")
+        let regular = find_font_file(dir, "arial.ttf");
+        let bold = find_font_file(dir, "arialbd.ttf")
+            .or_else(|| find_font_file(dir, "Arial Bold.ttf"));
+        let italic = find_font_file(dir, "ariali.ttf")
+            .or_else(|| find_font_file(dir, "Arial Italic.ttf"));
+        let bold_italic = find_font_file(dir, "arialbi.ttf")
+            .or_else(|| find_font_file(dir, "Arial Bold Italic.ttf"));
 
-        if regular.exists() && bold.exists() && italic.exists() && bold_italic.exists() {
+        if let (Some(r_path), Some(b_path), Some(i_path), Some(bi_path)) =
+            (&regular, &bold, &italic, &bold_italic)
+        {
             let r =
-                genpdf::fonts::FontData::new(std::fs::read(&regular).map_err(|e| e.to_string())?, None)
+                genpdf::fonts::FontData::new(std::fs::read(r_path).map_err(|e| e.to_string())?, None)
                     .map_err(|e| e.to_string())?;
             let b =
-                genpdf::fonts::FontData::new(std::fs::read(&bold).map_err(|e| e.to_string())?, None)
+                genpdf::fonts::FontData::new(std::fs::read(b_path).map_err(|e| e.to_string())?, None)
                     .map_err(|e| e.to_string())?;
             let i =
-                genpdf::fonts::FontData::new(std::fs::read(&italic).map_err(|e| e.to_string())?, None)
+                genpdf::fonts::FontData::new(std::fs::read(i_path).map_err(|e| e.to_string())?, None)
                     .map_err(|e| e.to_string())?;
             let bi = genpdf::fonts::FontData::new(
-                std::fs::read(&bold_italic).map_err(|e| e.to_string())?,
+                std::fs::read(bi_path).map_err(|e| e.to_string())?,
                 None,
             )
             .map_err(|e| e.to_string())?;
@@ -793,8 +818,29 @@ fn load_system_font() -> Result<genpdf::fonts::FontFamily<genpdf::fonts::FontDat
             });
         }
 
+        // If only regular font found, use it for all styles (fallback for macOS single-file fonts)
+        if let Some(r_path) = &regular {
+            if let Ok(data) = std::fs::read(r_path) {
+                if let Ok(r) = genpdf::fonts::FontData::new(data.clone(), None) {
+                    let b = genpdf::fonts::FontData::new(data.clone(), None).unwrap();
+                    let i = genpdf::fonts::FontData::new(data.clone(), None).unwrap();
+                    let bi = genpdf::fonts::FontData::new(data, None).unwrap();
+                    return Ok(genpdf::fonts::FontFamily {
+                        regular: r,
+                        bold: b,
+                        italic: i,
+                        bold_italic: bi,
+                    });
+                }
+            }
+        }
+
         // Try loading via genpdf's from_files (looks for {name}-Regular.ttf etc.)
         if let Ok(family) = genpdf::fonts::from_files(dir, "Arial", None) {
+            return Ok(family);
+        }
+        // Try Helvetica (common on macOS)
+        if let Ok(family) = genpdf::fonts::from_files(dir, "Helvetica", None) {
             return Ok(family);
         }
         if let Ok(family) = genpdf::fonts::from_files(dir, "LiberationSans", None) {
