@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SoText — Text Similarity Detector</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <h1 class="app-title">
+        <img src="assets/icon.png" alt="SoText" class="app-icon" />
+        <span class="title-text">So<span class="accent">Text</span></span>
+      </h1>
+      <p class="app-subtitle">Detect content similarity between .txt, .docx, .pdf, and .html files</p>
+    </div>
+    <div class="header-right">
+      <button id="langBtn" class="btn btn-help">🌐 VI</button>
+      <button id="helpBtn" class="btn btn-help">❓ How to Use</button>
+    </div>
+  </header>
+
+  <!-- Toolbar -->
+  <section class="toolbar">
+    <div class="toolbar-row">
+      <div class="folder-group">
+        <span class="toolbar-icon">📁</span>
+        <input type="text" id="folderPath" class="folder-input" placeholder="Select a folder containing .txt, .docx, .html files…" readonly />
+        <button id="browseBtn" class="btn btn-secondary">Browse…</button>
+      </div>
+      <button id="scanBtn" class="btn btn-primary">
+        <span class="btn-icon">🔍</span> Scan
+      </button>
+      <button id="clearBtn" class="btn btn-secondary">🗑 Clear</button>
+    </div>
+    <div class="toolbar-row toolbar-row-secondary">
+      <div class="param-group">
+        <label for="threshold">Threshold:</label>
+        <input type="number" id="threshold" class="param-input" value="30" min="10" max="100" step="5" />
+        <span class="param-unit">%</span>
+      </div>
+      <div class="param-group">
+        <label for="ngramSize">N-gram size:</label>
+        <input type="number" id="ngramSize" class="param-input" value="5" min="3" max="10" step="1" />
+      </div>
+      <div class="export-group">
+        <button id="templateBtn" class="btn btn-export">📋 Template</button>
+        <button id="exportXlsxBtn" class="btn btn-export" disabled>📊 Export Excel</button>
+        <button id="exportHtmlBtn" class="btn btn-export" disabled>📝 Export HTML</button>
+        <button id="exportPdfBtn" class="btn btn-export" disabled>📑 Export PDF</button>
+        <button id="exportDocxBtn" class="btn btn-export" disabled>📄 Export DOCX</button>
+      </div>
+    </div>
+    <div class="status-bar">
+      <span id="statusText" class="status-text">Select a folder and click Scan to begin</span>
+      <div id="progressBar" class="progress-bar hidden">
+        <div class="progress-fill"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Results Table -->
+  <section class="results-section">
+    <div class="table-container">
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th class="sortable" data-col="file_a">File A <span class="sort-arrow"></span></th>
+            <th class="sortable" data-col="file_b">File B <span class="sort-arrow"></span></th>
+            <th class="sortable" data-col="score">Cosine Score <span class="sort-arrow"></span></th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon">🔎</div>
+        <p>No results yet. Choose a folder and click Scan.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Detail Panel -->
+  <section id="detailPanel" class="detail-panel hidden">
+    <div class="detail-header">
+      <span id="detailLabelA" class="detail-file-name">File A</span>
+      <span id="detailMatchInfo" class="detail-match-info"></span>
+      <span id="detailLabelB" class="detail-file-name">File B</span>
+    </div>
+    <div class="detail-content">
+      <div id="textA" class="detail-text"></div>
+      <div class="detail-separator"></div>
+      <div id="textB" class="detail-text"></div>
+    </div>
+    <div class="detail-legend">
+      <span class="legend-item"><span class="hl-dot hl-exact-dot"></span> Exact match (N-gram)</span>
+      <span class="legend-item"><span class="hl-dot hl-para-dot"></span> Paraphrased (Jaccard/Levenshtein)</span>
+    </div>
+  </section>
+
+
+  <!-- Help Modal -->
+  <div id="helpModal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="helpTitle">📖 How to Use SoText</h2>
+        <button id="helpCloseBtn" class="modal-close">&times;</button>
+      </div>
+      <div id="helpBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Footer Credit -->
+  <footer class="app-footer">
+    Developed by <a href="https://edtechcorner.com/" target="_blank" rel="noopener">Mr Le Nguyen Nhu Anh</a> © 2026
+  </footer>
+
+  <script src="i18n.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
