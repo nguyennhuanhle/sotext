@@ -10,7 +10,7 @@
 |---|---|
 | **Windows Setup (EXE)** | [SoText_1.3.0_x64-setup.exe](https://github.com/nguyennhuanhle/sotext/releases/download/v1.3.0/SoText_1.3.0_x64-setup.exe) |
 | **Windows Installer (MSI)** | [SoText_1.3.0_x64_en-US.msi](https://github.com/nguyennhuanhle/sotext/releases/download/v1.3.0/SoText_1.3.0_x64_en-US.msi) |
-| **macOS (Apple Silicon)** | [SoText.app.zip](https://github.com/nguyennhuanhle/sotext/releases/download/v1.3.0/SoText_1.3.0_aarch64.dmg) |
+| **macOS (Apple Silicon)** | [SoText (DMG file)](https://github.com/nguyennhuanhle/sotext/releases/download/v1.3.0/SoText_1.3.0_aarch64.dmg) |
 
 👉 [All releases / Tất cả phiên bản](https://github.com/nguyennhuanhle/sotext/releases)
 
